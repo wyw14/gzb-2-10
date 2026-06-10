@@ -20,20 +20,9 @@
             :type="selectedRecommendSkill === skill.skillName ? 'primary' : 'info'"
             :effect="selectedRecommendSkill === skill.skillName ? 'dark' : 'plain'"
             class="recommend-skill-tag"
+            :closable="selectedRecommendSkill === skill.skillName"
             @click="toggleRecommendSkill(skill)"
-            closable
             @close="clearRecommendFilter"
-            v-if="selectedRecommendSkill === skill.skillName"
-          >
-            {{ skill.skillName }} ({{ skill.targetLevel }})
-          </el-tag>
-          <el-tag
-            v-else
-            :key="skill.skillName + '-plain'"
-            type="info"
-            effect="plain"
-            class="recommend-skill-tag"
-            @click="toggleRecommendSkill(skill)"
           >
             {{ skill.skillName }} ({{ skill.targetLevel }})
           </el-tag>

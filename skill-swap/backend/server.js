@@ -301,7 +301,8 @@ app.post('/api/exchanges', authMiddleware, (req, res) => {
     skills: req.body.skills,
     status: 'pending',
     createdAt: new Date().toISOString(),
-    confirmedBy: []
+    confirmedBy: [],
+    reviewedBy: []
   };
   exchanges.push(newExchange);
   writeJson('exchanges.json', exchanges);
@@ -363,6 +364,7 @@ app.post('/api/reviews', authMiddleware, (req, res) => {
 
   const reviews = readJson('reviews.json');
   const users = readJson('users.json');
+  const exchanges = readJson('exchanges.json');
 
   const existingReview = reviews.find(r =>
     r.exchangeId === req.body.exchangeId && r.reviewerId === req.user.id
@@ -382,6 +384,17 @@ app.post('/api/reviews', authMiddleware, (req, res) => {
   };
   reviews.push(newReview);
   writeJson('reviews.json', reviews);
+
+  const exchangeIndex = exchanges.findIndex(e => e.id === req.body.exchangeId);
+  if (exchangeIndex !== -1) {
+    if (!exchanges[exchangeIndex].reviewedBy) {
+      exchanges[exchangeIndex].reviewedBy = [];
+    }
+    if (!exchanges[exchangeIndex].reviewedBy.includes(req.user.id)) {
+      exchanges[exchangeIndex].reviewedBy.push(req.user.id);
+    }
+    writeJson('exchanges.json', exchanges);
+  }
 
   const targetIndex = users.findIndex(u => u.id === req.body.targetUserId);
   if (targetIndex !== -1) {

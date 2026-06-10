@@ -49,29 +49,50 @@ function analyzeExchanges(exchanges, userId) {
     (e.initiatorId === userId || e.partnerId === userId) && e.status === 'completed'
   );
 
+  const asInitiator = myExchanges.filter(e => e.initiatorId === userId);
+  const asPartner = myExchanges.filter(e => e.partnerId === userId);
+
   const learnedSkills = {};
   const taughtSkills = {};
 
   myExchanges.forEach(ex => {
     const isInitiator = ex.initiatorId === userId;
-    const mySkills = isInitiator ? ex.skills : null;
 
-    if (ex.skills?.learn) {
-      ex.skills.learn.forEach(skill => {
-        learnedSkills[skill] = (learnedSkills[skill] || 0) + 1;
-      });
-    }
-    if (ex.skills?.teach) {
-      ex.skills.teach.forEach(skill => {
-        taughtSkills[skill] = (taughtSkills[skill] || 0) + 1;
-      });
+    if (isInitiator) {
+      if (ex.skills?.learn) {
+        ex.skills.learn.forEach(skill => {
+          learnedSkills[skill] = (learnedSkills[skill] || 0) + 1;
+        });
+      }
+      if (ex.skills?.teach) {
+        ex.skills.teach.forEach(skill => {
+          taughtSkills[skill] = (taughtSkills[skill] || 0) + 1;
+        });
+      }
+    } else {
+      if (ex.skills?.teach) {
+        ex.skills.teach.forEach(skill => {
+          learnedSkills[skill] = (learnedSkills[skill] || 0) + 1;
+        });
+      }
+      if (ex.skills?.learn) {
+        ex.skills.learn.forEach(skill => {
+          taughtSkills[skill] = (taughtSkills[skill] || 0) + 1;
+        });
+      }
     }
   });
 
   return {
     totalExchanges: myExchanges.length,
+    asInitiatorCount: asInitiator.length,
+    asPartnerCount: asPartner.length,
     learnedSkills,
-    taughtSkills
+    taughtSkills,
+    exchangeBreakdown: {
+      asInitiator: asInitiator.length,
+      asPartner: asPartner.length
+    }
   };
 }
 
@@ -278,7 +299,9 @@ function getSkillGrowthPath(userId, users, skills, exchanges, skillTree) {
       masteredSkills: treeAnalysis.mastered.length,
       learningSkills: treeAnalysis.learning.length,
       planningSkills: treeAnalysis.planning.length,
-      completedExchanges: exchangeAnalysis.totalExchanges
+      completedExchanges: exchangeAnalysis.totalExchanges,
+      exchangesAsInitiator: exchangeAnalysis.asInitiatorCount,
+      exchangesAsPartner: exchangeAnalysis.asPartnerCount
     }
   };
 }

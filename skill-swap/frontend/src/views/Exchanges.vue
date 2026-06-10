@@ -1,5 +1,27 @@
 <template>
   <div class="exchanges">
+    <div class="card stats-card">
+      <h2 class="stats-title">📊 交换统计</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-value">{{ totalExchanges }}</span>
+          <span class="stat-label">总交换次数</span>
+        </div>
+        <div class="stat-item initiator">
+          <span class="stat-value">{{ asInitiatorCount }}</span>
+          <span class="stat-label">作为发起者</span>
+        </div>
+        <div class="stat-item partner">
+          <span class="stat-value">{{ asPartnerCount }}</span>
+          <span class="stat-label">作为接受者</span>
+        </div>
+        <div class="stat-item completed">
+          <span class="stat-value">{{ completedExchanges.length }}</span>
+          <span class="stat-label">已完成</span>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <h1 class="page-title">交换记录</h1>
 
@@ -17,7 +39,13 @@
           <div class="exchange-header">
             <div class="exchange-users">
               <el-avatar :src="getUserAvatar(exchange.initiatorId)" :size="40" />
+              <div class="exchange-user-label" :class="exchange.initiatorId === myId ? 'me' : 'other'">
+                {{ exchange.initiatorId === myId ? '我(发起)' : getUserName(exchange.initiatorId) + '(发起)' }}
+              </div>
               <el-icon class="exchange-icon"><Switch /></el-icon>
+              <div class="exchange-user-label" :class="exchange.partnerId === myId ? 'me' : 'other'">
+                {{ exchange.partnerId === myId ? '我(接受)' : getUserName(exchange.partnerId) + '(接受)' }}
+              </div>
               <el-avatar :src="getUserAvatar(exchange.partnerId)" :size="40" />
             </div>
             <div class="exchange-status pending">
@@ -57,7 +85,13 @@
           <div class="exchange-header">
             <div class="exchange-users">
               <el-avatar :src="getUserAvatar(exchange.initiatorId)" :size="40" />
+              <div class="exchange-user-label" :class="exchange.initiatorId === myId ? 'me' : 'other'">
+                {{ exchange.initiatorId === myId ? '我(发起)' : getUserName(exchange.initiatorId) + '(发起)' }}
+              </div>
               <el-icon class="exchange-icon"><Switch /></el-icon>
+              <div class="exchange-user-label" :class="exchange.partnerId === myId ? 'me' : 'other'">
+                {{ exchange.partnerId === myId ? '我(接受)' : getUserName(exchange.partnerId) + '(接受)' }}
+              </div>
               <el-avatar :src="getUserAvatar(exchange.partnerId)" :size="40" />
             </div>
             <div class="exchange-status completed">
@@ -141,6 +175,16 @@ const pendingExchanges = computed(() =>
 
 const completedExchanges = computed(() =>
   exchanges.value.filter(e => e.status === 'completed')
+)
+
+const totalExchanges = computed(() => exchanges.value.length)
+
+const asInitiatorCount = computed(() =>
+  exchanges.value.filter(e => e.initiatorId === myId).length
+)
+
+const asPartnerCount = computed(() =>
+  exchanges.value.filter(e => e.partnerId === myId).length
 )
 
 onMounted(async () => {
@@ -392,5 +436,67 @@ async function submitReview() {
   font-weight: 600;
   font-size: 18px;
   color: #333;
+}
+
+.stats-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stats-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  color: white;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stats-grid .stat-item {
+  text-align: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.stats-grid .stat-item:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.stats-grid .stat-value {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.stats-grid .stat-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.exchange-user-label {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.exchange-user-label.me {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.exchange-user-label.other {
+  background: #f0f0f0;
+  color: #666;
 }
 </style>
