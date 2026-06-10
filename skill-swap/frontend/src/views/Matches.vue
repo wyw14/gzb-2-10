@@ -101,7 +101,7 @@
               <el-icon><ChatDotRound /></el-icon>开始聊天
             </el-button>
             <el-button type="success" @click="createExchange(match)">
-              <el-icon><Handshake /></el-icon>发起交换
+              <el-icon><Promotion /></el-icon>发起交换
             </el-button>
           </div>
         </div>
@@ -121,7 +121,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { matchAPI, skillAPI, exchangeAPI, recommendationAPI } from '../api'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, User, ChatDotRound, Switch, Handshake, Star } from '@element-plus/icons-vue'
+import { Search, Refresh, User, ChatDotRound, Switch, Promotion, Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()

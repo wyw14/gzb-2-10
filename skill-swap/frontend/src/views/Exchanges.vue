@@ -7,17 +7,17 @@
           <span class="stat-value">{{ totalExchanges }}</span>
           <span class="stat-label">总交换次数</span>
         </div>
-        <div class="stat-item initiator">
-          <span class="stat-value">{{ asInitiatorCount }}</span>
-          <span class="stat-label">作为发起者</span>
-        </div>
-        <div class="stat-item partner">
-          <span class="stat-value">{{ asPartnerCount }}</span>
-          <span class="stat-label">作为接受者</span>
-        </div>
         <div class="stat-item completed">
           <span class="stat-value">{{ completedExchanges.length }}</span>
           <span class="stat-label">已完成</span>
+        </div>
+        <div class="stat-item initiator">
+          <span class="stat-value">{{ asInitiatorCount }}</span>
+          <span class="stat-label">发起(已完成)</span>
+        </div>
+        <div class="stat-item partner">
+          <span class="stat-value">{{ asPartnerCount }}</span>
+          <span class="stat-label">接受(已完成)</span>
         </div>
       </div>
     </div>
@@ -180,11 +180,11 @@ const completedExchanges = computed(() =>
 const totalExchanges = computed(() => exchanges.value.length)
 
 const asInitiatorCount = computed(() =>
-  exchanges.value.filter(e => e.initiatorId === myId).length
+  completedExchanges.value.filter(e => e.initiatorId === myId).length
 )
 
 const asPartnerCount = computed(() =>
-  exchanges.value.filter(e => e.partnerId === myId).length
+  completedExchanges.value.filter(e => e.partnerId === myId).length
 )
 
 onMounted(async () => {
