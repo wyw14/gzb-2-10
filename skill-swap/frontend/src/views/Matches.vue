@@ -1,7 +1,45 @@
 <template>
   <div class="matches">
     <div class="card">
-      <h1 class="page-title">智能匹配</h1>
+      <div class="page-header">
+        <h1 class="page-title">智能匹配</h1>
+        <div class="filter-tabs">
+          <el-radio-group v-model="filterMode" size="default">
+            <el-radio-button value="all">全部匹配</el-radio-button>
+            <el-radio-button value="recommend">成长路线推荐</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+
+      <div v-if="filterMode === 'recommend' && recommendedSkills.length" class="recommend-skills-filter">
+        <span class="filter-label">推荐学习技能：</span>
+        <div class="skill-tags-group">
+          <el-tag
+            v-for="skill in recommendedSkills"
+            :key="skill.skillName"
+            :type="selectedRecommendSkill === skill.skillName ? 'primary' : 'info'"
+            :effect="selectedRecommendSkill === skill.skillName ? 'dark' : 'plain'"
+            class="recommend-skill-tag"
+            @click="toggleRecommendSkill(skill)"
+            closable
+            @close="clearRecommendFilter"
+            v-if="selectedRecommendSkill === skill.skillName"
+          >
+            {{ skill.skillName }} ({{ skill.targetLevel }})
+          </el-tag>
+          <el-tag
+            v-else
+            :key="skill.skillName + '-plain'"
+            type="info"
+            effect="plain"
+            class="recommend-skill-tag"
+            @click="toggleRecommendSkill(skill)"
+          >
+            {{ skill.skillName }} ({{ skill.targetLevel }})
+          </el-tag>
+        </div>
+        <span class="filter-hint">点击技能标签筛选对应搭档</span>
+      </div>
 
       <div class="filter-bar">
         <el-input v-model="filters.keyword" placeholder="搜索技能" clearable style="width: 200px">
@@ -17,13 +55,16 @@
         </el-button>
       </div>
 
-      <div v-if="matches.length" class="matches-list">
-        <div v-for="match in filteredMatches" :key="match.userId" class="match-card">
+      <div v-if="filteredMatches.length" class="matches-list">
+        <div v-for="match in filteredMatches" :key="match.userId" class="match-card" :class="{ 'recommend-match': filterMode === 'recommend' }">
           <div class="match-header">
             <el-avatar :src="match.user.avatar" :size="64" />
             <div class="match-user-info">
               <div class="match-name-row">
                 <span class="match-name">{{ match.user.username }}</span>
+                <span v-if="filterMode === 'recommend' && match.matchedRecommendations?.length" class="recommend-badge">
+                  <el-icon><Star /></el-icon>路线推荐
+                </span>
                 <span class="score-badge" :class="getScoreClass(match.score)">
                   {{ match.score }}% 契合
                 </span>
@@ -87,23 +128,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { matchAPI, skillAPI, exchangeAPI } from '../api'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { matchAPI, skillAPI, exchangeAPI, recommendationAPI } from '../api'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, User, ChatDotRound, Switch, Handshake } from '@element-plus/icons-vue'
+import { Search, Refresh, User, ChatDotRound, Switch, Handshake, Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const matches = ref([])
+const recommendedMatches = ref([])
+const recommendedSkills = ref([])
 const categories = ref([])
+const filterMode = ref('all')
+const selectedRecommendSkill = ref('')
 const filters = ref({
   keyword: '',
   category: '',
   minScore: 30
 })
 
+const currentMatches = computed(() => {
+  return filterMode.value === 'recommend' ? recommendedMatches.value : matches.value
+})
+
 const filteredMatches = computed(() => {
-  let result = matches.value
+  let result = currentMatches.value
   if (filters.value.keyword) {
     const keyword = filters.value.keyword.toLowerCase()
     result = result.filter(m =>
@@ -112,12 +162,31 @@ const filteredMatches = computed(() => {
       m.user.username.toLowerCase().includes(keyword)
     )
   }
+  if (filterMode.value === 'recommend' && selectedRecommendSkill.value) {
+    const skill = selectedRecommendSkill.value.toLowerCase()
+    result = result.filter(m =>
+      m.matchedSkills.iCanLearn.some(s =>
+        s.toLowerCase().includes(skill) || skill.includes(s.toLowerCase())
+      )
+    )
+  }
   return result
 })
 
 onMounted(async () => {
   await loadCategories()
   await loadMatches()
+  await loadRecommendedPartners()
+  if (route.query.skill) {
+    filterMode.value = 'recommend'
+    selectedRecommendSkill.value = route.query.skill
+  }
+})
+
+watch(filterMode, () => {
+  if (filterMode.value === 'recommend' && recommendedMatches.value.length === 0) {
+    loadRecommendedPartners()
+  }
 })
 
 async function loadCategories() {
@@ -134,6 +203,29 @@ async function loadMatches() {
   } catch (e) {
     ElMessage.error('加载匹配失败')
   }
+}
+
+async function loadRecommendedPartners() {
+  try {
+    const params = { minScore: filters.value.minScore }
+    const res = await recommendationAPI.getRecommendedPartners(params)
+    recommendedSkills.value = res.data.recommendedSkills || []
+    recommendedMatches.value = res.data.partners || []
+  } catch (e) {
+    console.error('加载推荐搭档失败', e)
+  }
+}
+
+function toggleRecommendSkill(skill) {
+  if (selectedRecommendSkill.value === skill.skillName) {
+    selectedRecommendSkill.value = ''
+  } else {
+    selectedRecommendSkill.value = skill.skillName
+  }
+}
+
+function clearRecommendFilter() {
+  selectedRecommendSkill.value = ''
 }
 
 function getScoreClass(score) {
@@ -307,5 +399,84 @@ async function createExchange(match) {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-header .page-title {
+  margin-bottom: 0;
+}
+
+.filter-tabs {
+  display: flex;
+  align-items: center;
+}
+
+.recommend-skills-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #fef3c733 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #667eea20;
+}
+
+.filter-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  flex-shrink: 0;
+}
+
+.skill-tags-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.recommend-skill-tag {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recommend-skill-tag:hover {
+  transform: scale(1.05);
+}
+
+.filter-hint {
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.recommend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.recommend-match {
+  border: 2px solid #667eea40;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+.recommend-match:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
 }
 </style>

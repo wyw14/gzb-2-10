@@ -73,4 +73,10 @@ export const skillTreeAPI = {
   updateSkillTree: (data) => api.put('/skill-tree', data)
 }
 
+export const recommendationAPI = {
+  getGrowthPath: () => api.get('/recommendation/growth-path'),
+  getRecommendedSkills: () => api.get('/recommendation/skills'),
+  getRecommendedPartners: (params) => api.get('/recommendation/partners', { params })
+}
+
 export default api

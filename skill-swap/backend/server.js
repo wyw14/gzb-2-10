@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { readJson, writeJson } = require('./utils/storage');
 const { findMatchesForUser } = require('./utils/matching');
+const { getSkillGrowthPath, recommendNextSkills, recommendPartners } = require('./utils/recommendation');
 
 const app = express();
 const PORT = 4010;
@@ -513,6 +514,85 @@ app.get('/api/users', authMiddleware, (req, res) => {
   }
 
   res.json(filtered);
+});
+
+app.get('/api/recommendation/growth-path', authMiddleware, (req, res) => {
+  const users = readJson('users.json');
+  const skills = readJson('skills.json');
+  const exchanges = readJson('exchanges.json');
+  const user = users.find(u => u.id === req.user.id);
+
+  if (!user) {
+    return res.status(404).json({ error: '用户不存在' });
+  }
+
+  const growthPath = getSkillGrowthPath(
+    req.user.id,
+    users,
+    skills,
+    exchanges,
+    user.skillTree || []
+  );
+
+  res.json(growthPath);
+});
+
+app.get('/api/recommendation/skills', authMiddleware, (req, res) => {
+  const users = readJson('users.json');
+  const skills = readJson('skills.json');
+  const exchanges = readJson('exchanges.json');
+  const user = users.find(u => u.id === req.user.id);
+
+  if (!user) {
+    return res.status(404).json({ error: '用户不存在' });
+  }
+
+  const recommendedSkills = recommendNextSkills(
+    req.user.id,
+    users,
+    skills,
+    exchanges,
+    user.skillTree || []
+  );
+
+  res.json(recommendedSkills);
+});
+
+app.get('/api/recommendation/partners', authMiddleware, (req, res) => {
+  const users = readJson('users.json');
+  const skills = readJson('skills.json');
+  const exchanges = readJson('exchanges.json');
+  const user = users.find(u => u.id === req.user.id);
+  const { minScore } = req.query;
+
+  if (!user) {
+    return res.status(404).json({ error: '用户不存在' });
+  }
+
+  const recommendedSkills = recommendNextSkills(
+    req.user.id,
+    users,
+    skills,
+    exchanges,
+    user.skillTree || []
+  );
+
+  let partners = recommendPartners(
+    req.user.id,
+    users,
+    skills,
+    exchanges,
+    recommendedSkills
+  );
+
+  if (minScore) {
+    partners = partners.filter(p => p.score >= parseInt(minScore));
+  }
+
+  res.json({
+    recommendedSkills,
+    partners
+  });
 });
 
 app.listen(PORT, () => {

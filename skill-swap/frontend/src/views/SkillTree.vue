@@ -1,5 +1,68 @@
 <template>
   <div class="skill-tree-page">
+    <div class="card growth-stage-card">
+      <div class="growth-stage-header">
+        <div class="stage-info">
+          <span class="stage-icon">{{ growthPath.currentStage?.icon || '🌱' }}</span>
+          <div class="stage-text">
+            <h2 class="stage-name">{{ growthPath.currentStage?.name || '初学者' }}</h2>
+            <p class="stage-desc">{{ growthPath.currentStage?.description || '刚踏上技能成长之路' }}</p>
+          </div>
+        </div>
+        <div class="stage-progress">
+          <div class="progress-label">成长进度</div>
+          <el-progress :percentage="growthPath.currentStage?.progress || 0" :stroke-width="8" status="success" />
+        </div>
+      </div>
+      <div class="growth-stats">
+        <div class="growth-stat-item">
+          <span class="stat-num">{{ growthPath.stats?.masteredSkills || 0 }}</span>
+          <span class="stat-label">已掌握</span>
+        </div>
+        <div class="growth-stat-item">
+          <span class="stat-num">{{ growthPath.stats?.learningSkills || 0 }}</span>
+          <span class="stat-label">学习中</span>
+        </div>
+        <div class="growth-stat-item">
+          <span class="stat-num">{{ growthPath.stats?.completedExchanges || 0 }}</span>
+          <span class="stat-label">完成交换</span>
+        </div>
+        <div class="growth-stat-item">
+          <span class="stat-num">{{ growthPath.stats?.planningSkills || 0 }}</span>
+          <span class="stat-label">计划学习</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2 class="section-title">🎯 推荐学习路线</h2>
+        <el-button type="primary" size="small" @click="loadGrowthPath">
+          <el-icon><Refresh /></el-icon>刷新推荐
+        </el-button>
+      </div>
+      <div v-if="growthPath.recommendedSkills?.length" class="recommended-skills">
+        <div v-for="(skill, index) in growthPath.recommendedSkills" :key="index" class="recommend-skill-card" :class="'priority-' + skill.priority">
+          <div class="recommend-rank">{{ index + 1 }}</div>
+          <div class="recommend-icon">{{ getCategoryIcon(skill.category) }}</div>
+          <div class="recommend-info">
+            <div class="recommend-name">{{ skill.skillName }}</div>
+            <div class="recommend-level">{{ skill.currentLevel }} → {{ skill.targetLevel }}</div>
+            <div class="recommend-reason">{{ skill.reason }}</div>
+          </div>
+          <div class="recommend-actions">
+            <el-button type="primary" size="small" @click="addRecommendToTree(skill)">
+              <el-icon><Plus /></el-icon>加入技能树
+            </el-button>
+            <el-button size="small" @click="findPartnerForSkill(skill)">
+              <el-icon><User /></el-icon>找搭档
+            </el-button>
+          </div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无推荐，先添加一些技能吧" :image-size="80" />
+    </div>
+
     <div class="card">
       <h1 class="page-title">我的技能树</h1>
       <p class="subtitle">可视化展示你的技能成长路径，记录每一次进步</p>
@@ -96,19 +159,27 @@
 
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import { skillAPI, skillTreeAPI } from '../api'
+import { skillAPI, skillTreeAPI, recommendationAPI } from '../api'
 import { useUserStore } from '../stores/user'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh, User } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
+const router = useRouter()
 const skillTree = ref([])
 const categories = ref([])
 const showAddDialog = ref(false)
 const treeContainer = ref(null)
 const treeCanvas = ref(null)
 const chartRef = ref(null)
+const growthPath = ref({
+  currentStage: {},
+  recommendedSkills: [],
+  recommendedPartners: [],
+  stats: {}
+})
 let chartInstance = null
 
 const nodeForm = ref({
@@ -150,6 +221,7 @@ onMounted(async () => {
   if (skillTree.value.length === 0) {
     await initDefaultTree()
   }
+  await loadGrowthPath()
   await nextTick()
   initChart()
 })
@@ -173,6 +245,62 @@ async function saveSkillTree() {
     await skillTreeAPI.updateSkillTree({ skillTree: skillTree.value })
     await userStore.fetchMe()
   } catch (e) {}
+}
+
+async function loadGrowthPath() {
+  try {
+    const res = await recommendationAPI.getGrowthPath()
+    growthPath.value = res.data
+  } catch (e) {
+    console.error('加载成长路线失败', e)
+  }
+}
+
+function getCategoryIcon(category) {
+  const icons = {
+    programming: '💻',
+    language: '🌍',
+    music: '🎵',
+    design: '🎨',
+    cooking: '🍳',
+    fitness: '💪',
+    business: '📊',
+    photo: '📷',
+    writing: '✍️',
+    other: '✨'
+  }
+  return icons[category] || '📚'
+}
+
+function addRecommendToTree(skill) {
+  const exists = skillTree.value.some(n =>
+    n.name.toLowerCase() === skill.skillName.toLowerCase()
+  )
+  if (exists) {
+    ElMessage.warning('该技能已在技能树中')
+    return
+  }
+
+  skillTree.value.push({
+    id: `node-${Date.now()}`,
+    name: skill.skillName,
+    category: skill.category,
+    level: skill.currentLevel,
+    status: skill.type === 'upgrade' ? 'learning' : 'planning',
+    x: 0,
+    y: 0
+  })
+
+  arrangeNodes()
+  ElMessage.success('已添加到技能树')
+  updateChart()
+}
+
+function findPartnerForSkill(skill) {
+  router.push({
+    path: '/matches',
+    query: { skill: skill.skillName, from: 'recommendation' }
+  })
 }
 
 function arrangeNodes() {
@@ -460,5 +588,189 @@ function updateChart() {
 .stat-label {
   color: #666;
   font-size: 14px;
+}
+
+.growth-stage-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.growth-stage-card .page-title,
+.growth-stage-card .subtitle {
+  color: white;
+}
+
+.growth-stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.stage-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stage-icon {
+  font-size: 64px;
+}
+
+.stage-name {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.stage-desc {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 0;
+  color: white;
+}
+
+.stage-progress {
+  width: 200px;
+}
+
+.progress-label {
+  font-size: 14px;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.growth-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.growth-stat-item {
+  text-align: center;
+}
+
+.stat-num {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.growth-stat-item .stat-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.recommended-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommend-skill-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #67c23a;
+  transition: all 0.3s;
+}
+
+.recommend-skill-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recommend-skill-card.priority-100 {
+  border-left-color: #f56c6c;
+  background: linear-gradient(90deg, #fef0f0 0%, #ffffff 100%);
+}
+
+.recommend-skill-card.priority-90 {
+  border-left-color: #e6a23c;
+  background: linear-gradient(90deg, #fdf6ec 0%, #ffffff 100%);
+}
+
+.recommend-skill-card.priority-85,
+.recommend-skill-card.priority-80 {
+  border-left-color: #67c23a;
+  background: linear-gradient(90deg, #f0f9eb 0%, #ffffff 100%);
+}
+
+.recommend-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.priority-100 .recommend-rank {
+  background: #f56c6c;
+}
+
+.priority-90 .recommend-rank {
+  background: #e6a23c;
+}
+
+.recommend-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.recommend-info {
+  flex: 1;
+}
+
+.recommend-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.recommend-level {
+  font-size: 13px;
+  color: #667eea;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.recommend-reason {
+  font-size: 12px;
+  color: #999;
+}
+
+.recommend-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 </style>

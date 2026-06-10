@@ -1,1 +1,74 @@
-[]
+[
+  {
+    "id": "skill-1",
+    "userId": "4f61ece3-5da9-4dbe-be1d-bee876380d4c",
+    "name": "JavaScript",
+    "category": "programming",
+    "type": "teach",
+    "level": "高级",
+    "createdAt": "2026-06-04T07:18:28.236Z"
+  },
+  {
+    "id": "skill-2",
+    "userId": "4f61ece3-5da9-4dbe-be1d-bee876380d4c",
+    "name": "Vue.js",
+    "category": "programming",
+    "type": "teach",
+    "level": "中级",
+    "createdAt": "2026-06-04T07:18:28.236Z"
+  },
+  {
+    "id": "skill-3",
+    "userId": "4f61ece3-5da9-4dbe-be1d-bee876380d4c",
+    "name": "Python",
+    "category": "programming",
+    "type": "learn",
+    "level": "初级",
+    "createdAt": "2026-06-04T07:18:28.236Z"
+  },
+  {
+    "id": "skill-4",
+    "userId": "4f61ece3-5da9-4dbe-be1d-bee876380d4c",
+    "name": "英语",
+    "category": "language",
+    "type": "teach",
+    "level": "中级",
+    "createdAt": "2026-06-04T07:18:28.236Z"
+  },
+  {
+    "id": "skill-5",
+    "userId": "022adda7-120a-46fc-8612-43d194b775de",
+    "name": "Python",
+    "category": "programming",
+    "type": "teach",
+    "level": "高级",
+    "createdAt": "2026-06-04T07:32:50.596Z"
+  },
+  {
+    "id": "skill-6",
+    "userId": "022adda7-120a-46fc-8612-43d194b775de",
+    "name": "数据分析",
+    "category": "programming",
+    "type": "teach",
+    "level": "中级",
+    "createdAt": "2026-06-04T07:32:50.596Z"
+  },
+  {
+    "id": "skill-7",
+    "userId": "022adda7-120a-46fc-8612-43d194b775de",
+    "name": "JavaScript",
+    "category": "programming",
+    "type": "learn",
+    "level": "入门",
+    "createdAt": "2026-06-04T07:32:50.596Z"
+  },
+  {
+    "id": "skill-8",
+    "userId": "022adda7-120a-46fc-8612-43d194b775de",
+    "name": "日语",
+    "category": "language",
+    "type": "teach",
+    "level": "初级",
+    "createdAt": "2026-06-04T07:32:50.596Z"
+  }
+]
